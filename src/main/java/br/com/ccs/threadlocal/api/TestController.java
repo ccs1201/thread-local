@@ -16,6 +16,8 @@ public class TestController {
     public String test() {
         Thread.currentThread().setName("Thread Principal");
         var attr = RequestContextHolder.getRequestAttributes();
+        printHeaders();
+        
         CompletableFuture.runAsync(() -> {
             try {
                 Thread.currentThread().setName("Thread completableFuture");
