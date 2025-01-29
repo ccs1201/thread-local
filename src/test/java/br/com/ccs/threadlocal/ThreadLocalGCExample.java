@@ -3,33 +3,42 @@ package br.com.ccs.threadlocal;
 import java.lang.reflect.Field;
 
 public class ThreadLocalGCExample {
-    private static final ThreadLocal<byte[]> threadLocal = new ThreadLocal<>();
+    private static final ThreadLocal<String> threadLocal = new ThreadLocal<>();
 
     public static void main(String[] args) throws Exception {
+        threadLocal.set("Um objeto qualquer"); // 10 MB
+        inspectThreadLocalMap(Thread.currentThread());
+        var tlAttr = threadLocal.get();
+
+        //remove o objeto do contexto da thread main
+        threadLocal.remove();
+
         Thread thread = new Thread(() -> {
-            threadLocal.set(new byte[10 * 1024 * 1024]); // 10 MB
-            System.out.println("Valor setado");
+            System.out.println("### Iniciando outra thread");
+            threadLocal.set(tlAttr);
+            System.out.println("Valor setado na outra thread");
             try {
-                Thread.sleep(5000);
+                Thread.sleep(3000);
             } catch (InterruptedException e) {
                 throw new RuntimeException(e);
             }
         });
+        thread.setName("outra thread");
 
         thread.start();
-        Thread.sleep(1000);
+        Thread.sleep(2000);
         inspectThreadLocalMap(thread);
         thread.join(); // Aguarda o término da thread
 
-        // O mapa da thread ainda mantém a referência ao valor
-        //System.gc(); // Força o garbage collector
-        System.out.println("GC forçado. Verifique vazamentos.");
         inspectThreadLocalMap(thread);
         Thread.sleep(2000);
 
+        //Aqui não deve imprimir o valor 'Um objeto qualquer'
+        inspectThreadLocalMap(Thread.currentThread());
     }
 
     private static void inspectThreadLocalMap(Thread thread) throws Exception {
+        System.out.println("### Inspecionando ThreadLocalMap \nNome da Thread: " + thread.getName());
         Field threadLocalsField = Thread.class.getDeclaredField("threadLocals");
         threadLocalsField.setAccessible(true);
 
